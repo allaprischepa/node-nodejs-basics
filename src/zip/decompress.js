@@ -6,21 +6,29 @@ import path from 'node:path';
 const decompress = async () => {
   const sourcePath = path.join(import.meta.dirname, 'files', 'archive.gz');
   const destPath = path.join(import.meta.dirname, 'files', 'fileToCompress.txt');
-  const unzip = createUnzip();
   const source = createReadStream(sourcePath);
-  const destination = createWriteStream(destPath);
 
-  pipeline(
-    source,
-    unzip,
-    destination,
-    (err) => {
-      if (err) {
-        console.error(err);
-        process.exitCode = 1;
+  source.on('error', (err) => {
+    console.error('Decompress operation failed:', err);
+    process.exitCode = 1;
+  });
+
+  source.on('open', () => {
+    const destination = createWriteStream(destPath);
+    const unzip = createUnzip();
+
+    pipeline(
+      source,
+      unzip,
+      destination,
+      (err) => {
+        if (err) {
+          console.error('Decompress operation failed:', err);
+          process.exitCode = 1;
+        }
       }
-    }
-  );
+    );
+  });
 };
 
 await decompress();
